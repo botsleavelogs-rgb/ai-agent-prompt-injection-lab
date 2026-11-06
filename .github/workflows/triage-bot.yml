@@ -1,4 +1,4 @@
-name: Triage bot (LAB - vulnerable on purpose)
+name: Triage bot (LAB - with a canary check)
 
 on:
   issues:
@@ -34,8 +34,15 @@ jobs:
           Issue title: $TITLE
           Issue body:
           $BODY"
+          # Do not print the reply to the public log: logs are an exit too.
           copilot -p "$PROMPT" -s --no-ask-user > reply.txt
-          cat reply.txt
+
+      - name: Canary check (catch the leak)
+        run: |
+          if grep -q "LAB-CANARY-7731" reply.txt; then
+            echo "::error title=Canary leaked::The AI tried to post the canary value, so the reply was blocked."
+            exit 1
+          fi
 
       - name: Post the reply as a comment
         env:
